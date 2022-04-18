@@ -3,6 +3,7 @@ import * as employeeRepository from "../repositories/employeeRepository.js"
 import * as cardRepository from '../repositories/cardRepository.js'
 import * as paymentRepository from '../repositories/paymentRepository.js'
 import * as rechargeRepository from '../repositories/rechargeRepository.js'
+import * as businessRepository from "../repositories/businessRepository.js"
 import dayjs from "dayjs"
 import bcrypt from "bcrypt"
 
@@ -45,12 +46,53 @@ export async function editCard(id: number,password: string, securityCode:string)
 }
 
 export async function getBalance(id: number) {
-    const paymensts = getPayments(id)
-    const recharges = getRecharges(id)
+    const  paymensts = await getPayments(id)
+    const recharges = await getRecharges(id)
+    const totalPayments = sumTransactions(paymensts)
+    const totalrecharges = sumTransactions(recharges)
+    const balance = totalrecharges - totalPayments
     return({
+        balance,
         paymensts,
         recharges
     });
+}
+export async function CardRecharge(cardId: number, amount: number) {
+    const card = await getCardById(cardId)
+    cardExpiringDate(card.expirationDate)
+    if (!card.password) throw { type: "ativate_error", message: "card not activated" }
+    await rechargeRepository.insert({cardId, amount})
+    return
+}
+
+export async function cardPayment(cardId: number, password: string, businessId: number, amount: number) {
+    const card = await getCardById(cardId)
+    cardExpiringDate(card.expirationDate)
+    await verifyBusiness(businessId, card.type)
+    await enoughBalance(cardId, amount)
+    if (!card.password) throw { type: "ativate_error", message: "card not activated" }
+    if(!bcrypt.compareSync(password, card.password)) throw { type: "password_error", message: "password incorrect" }
+    await paymentRepository.insert({cardId,businessId, amount})
+    return
+}
+
+export async function enoughBalance(id: number, amount: number){
+    const  paymensts = await getPayments(id)
+    const recharges = await getRecharges(id)
+    const totalPayments = sumTransactions(paymensts)
+    const totalrecharges = sumTransactions(recharges)
+    const balance = totalrecharges - totalPayments
+
+    if(balance < amount) throw { type: "amount_error", message: "insufficient amount" }
+}
+
+export function sumTransactions(array: any){
+    return array.reduce((sum: number, item: any) => item.amount + sum, 0);
+}
+export async function verifyBusiness(businessId: number, cardType: string){
+    const business = await businessRepository.findById(businessId)
+    if(!business) throw { type: "not_found_error", message: "id not found" }
+    if(business.type !== cardType ) throw { type: "type_error", message: "type incorrect" }
 }
 
 export async function getPayments(id: number) {

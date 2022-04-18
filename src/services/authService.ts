@@ -1,7 +1,7 @@
-import * as authCompanyRepository from "../repositories/companyRepository.js"
+import * as authRepository from "../repositories/companyRepository.js"
 
-export async function verifyApiKey(apikey: string){
-    const verifyKey: any = await authCompanyRepository.findByApiKey(apikey)
-    if(!verifyKey) throw {error_type : "unauthorized company", message: "the company does not is authorized"}
-    return verifyKey; 
+export async function validateCompany(apiKey : string){
+    const validCompany = await authRepository.findByApiKey(apiKey)
+    if(!validCompany) throw {error_type : "unauthorized_company", message: "the company does not is authorized"}
+    return validCompany
 }
