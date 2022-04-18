@@ -33,8 +33,6 @@ export async function createCard(employeeId: number , type: cardRepository.Trans
 
 export async function editCard(id: number,password: string, securityCode:string) {
     const card = await getCardById(id)
-    console.log(securityCode)
-    console.log(card.securityCode)
     cardExpiringDate(card.expirationDate)
     if(!bcrypt.compareSync(securityCode, card.securityCode)) throw { type: "cvv_error", message: "cvv incorrect" }
     if (card.password) throw { type: "auth_error", message: "card already activated" }
@@ -123,18 +121,15 @@ export async function getCardById(id: number){
 export function createExpDate(){
     const year =  Number(dayjs().format("YY"))
     const date = dayjs().format(`MM/${year + 5}`)
-    console.log(date)
     return date
 }
 
 export function createCVV(){
     const cvv = faker.finance.creditCardCVV()
-    console.log(cvv)
     return bcrypt.hashSync(cvv, 10);
 }
 
 export function createCardNumber(){
-    console.log(faker.finance.creditCardNumber('mastercard'))
     return faker.finance.creditCardNumber('mastercard')
 }
 
